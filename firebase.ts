@@ -4,41 +4,43 @@ import { getAuth, Auth } from "firebase/auth";
 import { getFirestore, Firestore } from "firebase/firestore";
 
 /**
- * CRITICAL: Static access is mandatory for production bundlers.
- * We must use the full string 'process.env.NAME' for the build engine 
- * to find and replace it with the actual value from Vercel.
+ * CRITICAL FIX FOR VERCEL:
+ * Bundlers like Vite, Webpack, and Vercel's build engine perform static analysis.
+ * They look for the literal string 'process.env.VARIABLE_NAME'. 
+ * If variables are accessed dynamically (e.g., process.env[key]), the replacement 
+ * often fails, resulting in "undefined" strings and the 'auth/invalid-api-key' error.
  */
-const rawConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
+const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+const AUTH_DOMAIN = process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN;
+const DATABASE_URL = process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL;
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+const STORAGE_BUCKET = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+const MESSAGING_SENDER_ID = process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID;
+const APP_ID = process.env.NEXT_PUBLIC_FIREBASE_APP_ID;
+
+/**
+ * Registry Configuration Object
+ * We use the statically accessed variables here.
+ */
+export const firebaseConfig = {
+  apiKey: API_KEY,
+  authDomain: AUTH_DOMAIN,
+  databaseURL: DATABASE_URL,
+  projectId: PROJECT_ID,
+  storageBucket: STORAGE_BUCKET,
+  messagingSenderId: MESSAGING_SENDER_ID,
+  appId: APP_ID
 };
 
 /**
- * Validation Logic:
- * Ensures we don't pass 'undefined' strings or empty values to Firebase.
+ * Integrity Validation:
+ * Checks if the core API key is present and is a legitimate string (not "undefined").
  */
-const validate = (val: any) => {
-  if (!val || val === "undefined" || val === "null" || val.length < 5) return "";
-  return val;
+const validate = (val: any): boolean => {
+  return !!val && val !== "undefined" && val !== "null" && String(val).trim().length > 10;
 };
 
-export const firebaseConfig = {
-  apiKey: validate(rawConfig.apiKey),
-  authDomain: validate(rawConfig.authDomain),
-  databaseURL: validate(rawConfig.databaseURL),
-  projectId: validate(rawConfig.projectId),
-  storageBucket: validate(rawConfig.storageBucket),
-  messagingSenderId: validate(rawConfig.messagingSenderId),
-  appId: validate(rawConfig.appId)
-};
-
-// The app is only functional if the API Key is present and valid
-export const isConfigValid = !!firebaseConfig.apiKey;
+export const isConfigValid = validate(firebaseConfig.apiKey);
 
 let firebaseApp: FirebaseApp | undefined;
 let firebaseAuth: Auth | undefined;
@@ -46,14 +48,16 @@ let firebaseDb: Firestore | undefined;
 
 if (isConfigValid) {
   try {
+    // Single instance initialization pattern
     firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     firebaseAuth = getAuth(firebaseApp);
     firebaseDb = getFirestore(firebaseApp);
   } catch (error) {
-    console.error("FATAL: Firebase Handshake Failed:", error);
+    console.error("FIREBASE_CORE_HANDSHAKE_ERROR:", error);
   }
 }
 
-// Export as constant instances to be used across the app
+// Exported as constants to be consumed safely by the UI
+// Casting to avoid null-check fatigue in components while relying on isConfigValid guard in App.tsx
 export const auth = firebaseAuth as Auth;
 export const db = firebaseDb as Firestore;

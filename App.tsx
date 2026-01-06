@@ -12,7 +12,7 @@ import SignalManagement from './pages/SignalManagement';
 import SecurityLogs from './pages/SecurityLogs';
 import SystemSettings from './pages/SystemSettings';
 import { ScanLines } from './constants';
-import { ShieldAlert, Terminal, Cpu, Database, Server, Info, Activity, Fingerprint } from 'lucide-react';
+import { ShieldAlert, Terminal, Cpu, Database, Server, Info, Activity, Fingerprint, Lock } from 'lucide-react';
 
 const SUPER_ADMIN_EMAIL = 'dokkustic@admin.com';
 
@@ -22,70 +22,77 @@ const App: React.FC = () => {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // If Firebase isn't properly configured, stop loading and show diagnostic screen
+    // If the Firebase configuration is invalid, do not attempt to start Auth listeners.
     if (!isConfigValid || !auth) {
       setLoading(false);
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser && currentUser.email !== SUPER_ADMIN_EMAIL) {
-        signOut(auth);
-        setAuthError('SECURITY ALERT: UNAUTHORIZED IDENTITY DETECTED.');
-        setUser(null);
-      } else {
-        setUser(currentUser);
-        setAuthError(null);
-      }
+    try {
+      const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        if (currentUser && currentUser.email !== SUPER_ADMIN_EMAIL) {
+          signOut(auth);
+          setAuthError('AUTHORIZATION_ERROR: IDENTITY NOT RECOGNIZED IN SUPER ADMIN REGISTRY.');
+          setUser(null);
+        } else {
+          setUser(currentUser);
+          setAuthError(null);
+        }
+        setLoading(false);
+      });
+      return () => unsubscribe();
+    } catch (e) {
+      console.error("AUTH_LISTENER_EXCEPTION:", e);
       setLoading(false);
-    });
-    return () => unsubscribe();
+    }
   }, []);
 
-  // Professional Terminal Error for Configuration Issues
+  /**
+   * High-Fidelity Diagnostic Terminal
+   * Shown when environment variables are missing or incorrect.
+   */
   if (!isConfigValid) {
     return (
       <div className="h-screen w-screen bg-[#020204] flex items-center justify-center p-6 font-inter selection:bg-cyber-red selection:text-white">
         <ScanLines />
-        <div className="max-w-2xl w-full glass-card p-12 rounded-[3.5rem] border border-cyber-red/30 space-y-10 shadow-[0_0_120px_rgba(239,68,68,0.1)] relative overflow-hidden">
-          {/* Background Matrix-like glow */}
-          <div className="absolute -top-24 -right-24 w-64 h-64 bg-cyber-red/5 rounded-full blur-[100px]" />
+        <div className="max-w-2xl w-full glass-card p-12 rounded-[4rem] border border-cyber-red/30 space-y-12 shadow-[0_0_150px_rgba(239,68,68,0.1)] relative overflow-hidden">
+          <div className="absolute -top-32 -right-32 w-80 h-80 bg-cyber-red/5 rounded-full blur-[120px]" />
           
-          <div className="flex flex-col items-center text-center space-y-4">
-            <div className="w-24 h-24 bg-cyber-red/10 rounded-[2.5rem] border border-cyber-red/40 flex items-center justify-center shadow-[0_0_40px_rgba(239,68,68,0.2)]">
-              <ShieldAlert className="w-12 h-12 text-cyber-red animate-pulse" />
+          <div className="flex flex-col items-center text-center space-y-6">
+            <div className="w-28 h-28 bg-cyber-red/10 rounded-[3rem] border border-cyber-red/40 flex items-center justify-center shadow-[0_0_50px_rgba(239,68,68,0.2)] animate-pulse">
+              <ShieldAlert className="w-14 h-14 text-cyber-red" />
             </div>
-            <div className="space-y-1">
-              <h1 className="font-orbitron text-2xl font-black text-white uppercase tracking-tighter">Secure Gateway Offline</h1>
-              <p className="font-mono text-[9px] text-slate-500 uppercase tracking-[0.5em] font-black">Environmental Handshake Failure // Error 401-CFG</p>
+            <div className="space-y-2">
+              <h1 className="font-orbitron text-3xl font-black text-white uppercase tracking-tighter">Gateway Offline</h1>
+              <p className="font-mono text-[10px] text-slate-500 uppercase tracking-[0.6em] font-black">Environmental Integrity Compromised // Protocol 401</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-black/60 p-6 rounded-3xl border border-white/5 space-y-4">
-              <div className="flex items-center gap-3 text-cyber-cyan border-b border-white/5 pb-3">
-                <Terminal className="w-4 h-4" />
-                <span className="text-[10px] font-mono font-black uppercase tracking-widest">Diagnostic Report</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-black/60 p-8 rounded-[2.5rem] border border-white/5 space-y-5">
+              <div className="flex items-center gap-3 text-cyber-cyan border-b border-white/5 pb-4">
+                <Terminal className="w-5 h-5" />
+                <span className="text-[11px] font-mono font-black uppercase tracking-widest">System Analysis</span>
               </div>
-              <p className="text-[11px] font-mono text-slate-400 leading-relaxed uppercase">
-                The terminal is unable to detect <span className="text-white">Firebase Core</span>. 
-                Vercel environment variables must be populated and the project must be 
-                <span className="text-cyber-cyan"> Redeployed</span> to inject them into the production build.
+              <p className="text-[12px] font-mono text-slate-400 leading-relaxed uppercase">
+                Uplink to <span className="text-white">Firebase Registry</span> failed. 
+                Detected missing or malformed <span className="text-cyber-cyan font-bold">Environment Variables</span> in the build environment. 
+                Vercel deployment must be synchronized with institutional keys.
               </p>
             </div>
 
-            <div className="bg-black/60 p-6 rounded-3xl border border-white/5 space-y-3">
-              <div className="flex items-center gap-3 text-cyber-yellow border-b border-white/5 pb-3">
-                <Activity className="w-4 h-4" />
-                <span className="text-[10px] font-mono font-black uppercase tracking-widest">Registry Status</span>
+            <div className="bg-black/60 p-8 rounded-[2.5rem] border border-white/5 space-y-4">
+              <div className="flex items-center gap-3 text-cyber-yellow border-b border-white/5 pb-4">
+                <Activity className="w-5 h-5" />
+                <span className="text-[11px] font-mono font-black uppercase tracking-widest">Shard Status</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {Object.entries(firebaseConfig).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between">
-                    <span className="text-[8px] font-mono text-slate-600 truncate mr-4">{key.replace('NEXT_PUBLIC_FIREBASE_', '')}</span>
+                    <span className="text-[9px] font-mono text-slate-600 truncate mr-4">{key.replace('NEXT_PUBLIC_FIREBASE_', '')}</span>
                     <div className="flex items-center gap-2">
-                      <div className={`w-1 h-1 rounded-full ${value ? 'bg-cyber-green' : 'bg-cyber-red shadow-[0_0_5px_#ef4444]'}`} />
-                      <span className={`text-[8px] font-mono font-black ${value ? 'text-cyber-green' : 'text-cyber-red'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${value ? 'bg-cyber-green' : 'bg-cyber-red animate-pulse shadow-[0_0_8px_#ef4444]'}`} />
+                      <span className={`text-[9px] font-mono font-black ${value ? 'text-cyber-green' : 'text-cyber-red'}`}>
                         {value ? 'LINKED' : 'NULL'}
                       </span>
                     </div>
@@ -95,15 +102,15 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-6 border-t border-white/5 flex flex-col items-center gap-6">
-            <div className="flex items-center gap-8 opacity-20">
-              <Cpu className="w-8 h-8 text-white" />
-              <Fingerprint className="w-8 h-8 text-white" />
-              <Database className="w-8 h-8 text-white" />
+          <div className="pt-8 border-t border-white/5 flex flex-col items-center gap-8">
+            <div className="flex items-center gap-10 opacity-30 grayscale hover:grayscale-0 transition-all">
+              <Cpu className="w-10 h-10 text-white" />
+              <Fingerprint className="w-10 h-10 text-white" />
+              <Lock className="w-10 h-10 text-white" />
+              <Database className="w-10 h-10 text-white" />
             </div>
-            <p className="text-[9px] font-mono text-slate-600 uppercase tracking-widest italic text-center max-w-sm leading-relaxed">
-              Required: NEXT_PUBLIC_FIREBASE_API_KEY, NEXT_PUBLIC_FIREBASE_PROJECT_ID, etc.
-              Verification process initiated...
+            <p className="text-[10px] font-mono text-slate-600 uppercase tracking-[0.2em] italic text-center max-w-md leading-relaxed">
+              Required Action: Ensure Vercel environment variables match the naming convention and trigger a clean redeploy.
             </p>
           </div>
         </div>
@@ -114,17 +121,17 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="h-screen w-screen bg-[#010101] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-10">
-          <div className="relative w-24 h-24">
-             <div className="absolute inset-0 border-4 border-cyber-cyan/5 rounded-full"></div>
-             <div className="absolute inset-0 border-t-4 border-cyber-cyan rounded-full animate-spin"></div>
+        <div className="flex flex-col items-center gap-12">
+          <div className="relative w-32 h-32">
+             <div className="absolute inset-0 border-[6px] border-cyber-cyan/5 rounded-full"></div>
+             <div className="absolute inset-0 border-t-[6px] border-cyber-cyan rounded-full animate-[spin_1s_linear_infinite]"></div>
              <div className="absolute inset-0 flex items-center justify-center">
-               <Fingerprint className="w-10 h-10 text-cyber-cyan animate-pulse" />
+               <Fingerprint className="w-14 h-14 text-cyber-cyan animate-pulse" />
              </div>
           </div>
-          <div className="text-center space-y-3">
-            <p className="font-orbitron text-[12px] text-cyber-cyan animate-pulse tracking-[0.8em] uppercase font-black">Accessing Nexus</p>
-            <p className="font-mono text-[8px] text-slate-600 uppercase tracking-widest">Scanning Shard Integrity...</p>
+          <div className="text-center space-y-4">
+            <p className="font-orbitron text-[14px] text-cyber-cyan animate-pulse tracking-[1em] uppercase font-black">Nexus Decrypt</p>
+            <p className="font-mono text-[9px] text-slate-600 uppercase tracking-[0.5em] font-bold">Verifying System Authorization...</p>
           </div>
         </div>
       </div>
